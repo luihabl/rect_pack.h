@@ -94,8 +94,6 @@ void destroy_bnode(bnode* node) {
 int compare_rect_r_max_side(const void* r1, const void* r2) {
     #define __MAX(a,b) ((a) > (b) ? (a) : (b))
 
-
-    // should it be minus or plus here
     return __MAX(((rect_r*) r2)->w, ((rect_r*) r2)->h) - 
         __MAX(((rect_r*) r1)->w, ((rect_r*) r1)->h);
     
