@@ -90,14 +90,27 @@ void destroy_bnode(bnode* node) {
     free(node);
 }
 
+rect_out_info empty_rect_r() {
+    rect_out_info info = {.x = 0, .y = 0, .packed = false, .page = 0};
+    return info;
+}
 
 int compare_rect_r_max_side(const void* r1, const void* r2) {
     #define __MAX(a,b) ((a) > (b) ? (a) : (b))
-
-    return __MAX(((rect_r*) r2)->w, ((rect_r*) r2)->h) - 
+    #define __MIN(a,b) ((a) < (b) ? (a) : (b))
+    
+    int diff = __MAX(((rect_r*) r2)->w, ((rect_r*) r2)->h) - 
         __MAX(((rect_r*) r1)->w, ((rect_r*) r1)->h);
+
+    if(diff == 0) {
+        diff = __MIN(((rect_r*) r2)->w, ((rect_r*) r2)->h) - 
+            __MIN(((rect_r*) r1)->w, ((rect_r*) r1)->h);
+    }
+
+    return diff;
     
     #undef __MAX
+    #undef __MIN
 }
 
 
@@ -190,9 +203,11 @@ pack_res pack_bin_tree(pack_ctx* ctx) {
     res.none_fit = true;
 
     rect_r* r = ctx->r;
-    int n = ctx->n;
 
-    if(ctx->n < 2) {
+    if(ctx->next == ctx->last) {
+        r[ctx->next].info = empty_rect_r();
+        r[ctx->next].info.packed = true;
+        r[ctx->next].info.page = ctx->page;
         return res;
     }
 
@@ -251,9 +266,13 @@ pack_res pack_bin_tree(pack_ctx* ctx) {
 
 bool rect_pack(int max_w, int max_h, bool paging, 
                rect_r* rects, int rects_size) {
+
+    if(rects_size == 0) {
+        return true;
+    }
     
     // Sort nodes by the max side
-    qsort(rects, rects_size, sizeof(rect_r), &compare_rect_r_max_side);
+    qsort(rects, rects_size, sizeof(rect_r), compare_rect_r_max_side);
 
     // building context variable
     pack_ctx ctx;
@@ -270,7 +289,7 @@ bool rect_pack(int max_w, int max_h, bool paging,
     bool all_packed = false;
 
     for(int i = 0; i < ctx.n; i++) {
-        rects[i].info.packed = false;
+        rects[i].info = empty_rect_r();
     }
     
     while(!ok) {
