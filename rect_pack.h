@@ -33,7 +33,6 @@ struct pack_ctx {
     rect_r* r;
     int n;
     int max_w, max_h;
-    bool paging;
     int page;
     int next;
     int last;
@@ -280,7 +279,6 @@ bool rect_pack(int max_w, int max_h, bool paging,
     ctx.max_h = max_h;
     ctx.r = rects;
     ctx.n = rects_size;
-    ctx.paging = paging;
     ctx.page = 0;
     ctx.next = 0;
     ctx.last = rects_size - 1;
