@@ -203,14 +203,12 @@ pack_res pack_bin_tree(pack_ctx* ctx) {
 
     rect_r* r = ctx->r;
 
-    if(ctx->next == ctx->last) {
-        r[ctx->next].info = empty_rect_r();
-        r[ctx->next].info.packed = true;
-        r[ctx->next].info.page = ctx->page;
-        return res;
-    }
+    int root_w = r[ctx->next].w;
+    int root_h = r[ctx->next].h;
 
-    bnode* root = create_bnode(0, 0, r[0].w, r[1].h);
+    bnode* root = create_bnode(0, 0, 
+                                root_w <= ctx->max_w ? root_w : ctx->max_w, 
+                                root_h <= ctx->max_h ? root_h : ctx->max_h);
 
     bool contiguous = true;
     int last = ctx->last;
@@ -236,7 +234,6 @@ pack_res pack_bin_tree(pack_ctx* ctx) {
         } else {
             bnode* expanded = grow_bin_tree(root, &r[i], 
                                             ctx->max_w, ctx->max_h);
-
             if(expanded) {
                 r[i].info.x = expanded->x;
                 r[i].info.y = expanded->y;
@@ -293,7 +290,7 @@ bool rect_pack(int max_w, int max_h, bool paging,
     while(!ok) {
         pack_res res = pack_bin_tree(&ctx);
         ok = res.all_fit;
-        all_packed = ok;
+        all_packed = all_packed || ok;
 
         if(!paging || res.none_fit) {
             break;
