@@ -1,8 +1,8 @@
 #ifndef RECT_PACK_H
 #define RECT_PACK_H
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef struct rect_out_info rect_out_info;
 struct rect_out_info {
@@ -21,12 +21,12 @@ struct rect_r {
 // rect packing based on bin tree method
 bool rect_pack(int max_w, int max_h, bool paging, rect_r* rects, int rects_size);
 
-#endif 
+#endif
 
 #ifdef RECT_PACK_H_IMPL
 
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
 
 typedef struct pack_ctx pack_ctx;
 struct pack_ctx {
@@ -53,7 +53,7 @@ struct bnode {
 };
 
 bnode* create_bnode_empty() {
-    bnode* n = (bnode*) malloc(sizeof(bnode));
+    bnode* n = (bnode*)malloc(sizeof(bnode));
     n->right = n->down = NULL;
     return n;
 }
@@ -78,7 +78,6 @@ bnode* create_bnode(int x, int y, int w, int h) {
 }
 
 void destroy_bnode(bnode* node) {
-
     if(!node) {
         return;
     }
@@ -95,23 +94,22 @@ rect_out_info empty_rect_r() {
 }
 
 int compare_rect_r_max_side(const void* r1, const void* r2) {
-    #define __MAX(a,b) ((a) > (b) ? (a) : (b))
-    #define __MIN(a,b) ((a) < (b) ? (a) : (b))
-    
-    int diff = __MAX(((rect_r*) r2)->w, ((rect_r*) r2)->h) - 
-        __MAX(((rect_r*) r1)->w, ((rect_r*) r1)->h);
+#define __MAX(a, b) ((a) > (b) ? (a) : (b))
+#define __MIN(a, b) ((a) < (b) ? (a) : (b))
+
+    int diff =
+        __MAX(((rect_r*)r2)->w, ((rect_r*)r2)->h) - __MAX(((rect_r*)r1)->w, ((rect_r*)r1)->h);
 
     if(diff == 0) {
-        diff = __MIN(((rect_r*) r2)->w, ((rect_r*) r2)->h) - 
-            __MIN(((rect_r*) r1)->w, ((rect_r*) r1)->h);
+        diff =
+            __MIN(((rect_r*)r2)->w, ((rect_r*)r2)->h) - __MIN(((rect_r*)r1)->w, ((rect_r*)r1)->h);
     }
 
     return diff;
-    
-    #undef __MAX
-    #undef __MIN
-}
 
+#undef __MAX
+#undef __MIN
+}
 
 bnode* find_bin_tree(bnode* node, int w, int h) {
     if(node->used) {
@@ -142,7 +140,7 @@ bnode* grow_right(bnode* root, rect_r* r) {
     root->h = old->h;
     root->down = old;
     root->right = create_bnode(old->w, 0, r->w, old->h);
-    
+
     bnode* node = find_bin_tree(root, r->w, r->h);
     if(node) {
         return split_bin_tree(node, r->w, r->h);
@@ -162,9 +160,9 @@ bnode* grow_down(bnode* root, rect_r* r) {
     root->h = old->h + r->h;
     root->down = create_bnode(0, old->h, old->w, r->h);
     root->right = old;
-    
+
     bnode* node = find_bin_tree(root, r->w, r->h);
-    if(node) {
+    if (node) {
         return split_bin_tree(node, r->w, r->h);
     } else {
         return NULL;
@@ -172,7 +170,6 @@ bnode* grow_down(bnode* root, rect_r* r) {
 }
 
 bnode* grow_bin_tree(bnode* root, rect_r* r, int max_w, int max_h) {
-    
     bool can_grow_down = (r->w <= root->w) && ((r->h + root->h) <= max_h);
     bool can_grow_right = (r->h <= root->h) && ((r->w + root->w) <= max_w);
 
@@ -196,7 +193,6 @@ bnode* grow_bin_tree(bnode* root, rect_r* r, int max_w, int max_h) {
 
 
 pack_res pack_bin_tree(pack_ctx* ctx) {
-
     pack_res res;
     res.all_fit = true;
     res.none_fit = true;
@@ -207,44 +203,40 @@ pack_res pack_bin_tree(pack_ctx* ctx) {
     int root_h = r[ctx->next].h;
 
     bnode* root = create_bnode(0, 0, 
-                                root_w <= ctx->max_w ? root_w : ctx->max_w, 
+                                root_w <= ctx->max_w ? root_w : ctx->max_w,
                                 root_h <= ctx->max_h ? root_h : ctx->max_h);
 
     bool contiguous = true;
     int last = ctx->last;
-    
 
     for(int i = ctx->next; i <= ctx->last; i++) {
-
-        if(r[i].info.packed) {
-            continue;
-        }
         
-        bnode* node = find_bin_tree(root, r[i].w, r[i].h);
-        
-        if(node) {
-            r[i].info.x = node->x;
-            r[i].info.y = node->y;
-            r[i].info.packed = true;
-            r[i].info.page = ctx->page;
-            
-            split_bin_tree(node, r[i].w, r[i].h);
-            res.none_fit = false;
+        if(!r[i].info.packed) {
+            bnode* node = find_bin_tree(root, r[i].w, r[i].h);
 
-        } else {
-            bnode* expanded = grow_bin_tree(root, &r[i], 
-                                            ctx->max_w, ctx->max_h);
-            if(expanded) {
-                r[i].info.x = expanded->x;
-                r[i].info.y = expanded->y;
+            if(node) {
+                r[i].info.x = node->x;
+                r[i].info.y = node->y;
                 r[i].info.packed = true;
                 r[i].info.page = ctx->page;
+
+                split_bin_tree(node, r[i].w, r[i].h);
                 res.none_fit = false;
+
             } else {
-                r[i].info.packed = false;
-                res.all_fit = false;
-                contiguous = false;
-                last = i;
+                bnode* expanded = grow_bin_tree(root, &r[i], ctx->max_w, ctx->max_h);
+                if(expanded) {
+                    r[i].info.x = expanded->x;
+                    r[i].info.y = expanded->y;
+                    r[i].info.packed = true;
+                    r[i].info.page = ctx->page;
+                    res.none_fit = false;
+                } else {
+                    r[i].info.packed = false;
+                    res.all_fit = false;
+                    contiguous = false;
+                    last = i;
+                }
             }
         }
 
@@ -259,14 +251,11 @@ pack_res pack_bin_tree(pack_ctx* ctx) {
     return res;
 }
 
-
-bool rect_pack(int max_w, int max_h, bool paging, 
-               rect_r* rects, int rects_size) {
-
+bool rect_pack(int max_w, int max_h, bool paging, rect_r* rects, int rects_size) {
     if(rects_size == 0) {
         return true;
     }
-    
+
     // Sort nodes by the max side
     qsort(rects, rects_size, sizeof(rect_r), compare_rect_r_max_side);
 
@@ -286,7 +275,7 @@ bool rect_pack(int max_w, int max_h, bool paging,
     for(int i = 0; i < ctx.n; i++) {
         rects[i].info = empty_rect_r();
     }
-    
+
     while(!ok) {
         pack_res res = pack_bin_tree(&ctx);
         ok = res.all_fit;
@@ -302,4 +291,4 @@ bool rect_pack(int max_w, int max_h, bool paging,
     return all_packed;
 }
 
-#endif 
+#endif
